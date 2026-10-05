@@ -10,6 +10,9 @@ Local check 2026-10-05; upstream `1762adac607a1b29cfc4da129557780beea71616`.
 - Bun 1.3.12 frozen install and original TypeScript/Vite frontend production build passed.
 - Inherited Starlette TestClient httpx-deprecation warning remains visible; no tests skipped for it.
 
-Final published CI, Compose and browser evidence will be recorded after execution. Until recorded, those are pending.
+- Browser automation passed: actual localhost login, duplicate input, lost-response retry, recovery, dead-delivery operator replay, 390px viewport without page overflow, logout. No browser page errors. Screenshots and original WebM are in `docs/images/`. Partner version/apply_count progressed 1/1 → 2/2 → 3/3, not once per HTTP attempt.
+- Ruff lint/format and module mypy passed. Migration downgrade/upgrade and post-change upstream Items/CRUD regression passed (21 tests).
+
+Published CI and Compose results will be recorded after execution. Until recorded, those are pending.
 
 Not claimed: full upstream email/browser suite, third-party vendor acceptance, production deployment, security audit, capacity/SLA, high availability or disaster recovery. No real funds, stock, client records or live emails involved.

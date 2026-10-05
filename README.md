@@ -10,6 +10,10 @@ By **Ivan Matiushkin with Codex**. Upstream application by Sebastián Ramírez a
 
 ## Inspect
 
+![Actual operator console after verified recovery](docs/images/delivery-console.png)
+
+[Watch the recorded local recovery demonstration](docs/images/recovery-demo.webm)
+
 - [Case study](CASE-STUDY.md) · [Architecture and guarantees](docs/ARCHITECTURE.md)
 - [Verification](docs/VERIFICATION.md) · [Demo and recovery runbook](docs/DEMO.md)
 - [Our changes against upstream](https://github.com/Hadezu/fastapi-webhook-reliability/compare/1762adac607a1b29cfc4da129557780beea71616...main)
