@@ -17,7 +17,9 @@ Local check 2026-10-05; upstream `1762adac607a1b29cfc4da129557780beea71616`.
 
 Implementation checked locally: `61540587fd9deaa4ae135e01284cce4f8194e93c`.
 
-[GitHub Actions run for that revision](https://github.com/Hadezu/fastapi-webhook-reliability/actions/runs/37368604732) was still **queued** at 2026-10-05 20:20 UTC. No hosted CI success is claimed. The workflow includes a real Docker Compose build/startup/delivery check, but Docker was unavailable on this Windows host: **Compose execution remains unverified until that job completes successfully**. Consult the linked run for its subsequent provider status.
+[GitHub Actions run for that revision](https://github.com/Hadezu/fastapi-webhook-reliability/actions/runs/37368604732) completed **SUCCESS** on 2026-10-05. On a clean Ubuntu runner it passed the pristine upstream Items/CRUD baseline, migration roundtrip, post-change upstream regression, all extension tests, frontend build, lint/format/types, and actual Docker Compose build/startup/delivery smoke. The Compose smoke submitted the same event twice and verified one delivered outbox entry with a matching destination receipt. It is a bounded smoke test, not the entire fault suite repeated inside Compose.
+
+Docker was unavailable on the local Windows host; its execution evidence comes from that hosted run. Subsequent documentation-only commits do not change the tested implementation. Test XML and Compose logs are attached to the run with 14-day artifact retention.
 
 Local browser recording: `docs/images/recovery-demo.webm`, SHA-256 `CB90E18DE2B1EC75EAA7EA0E621A0308FAF92CC6956D3B338B6CB204354385E5`.
 
