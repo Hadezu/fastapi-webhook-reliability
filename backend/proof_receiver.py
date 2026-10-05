@@ -17,7 +17,8 @@ from app.webhooks.protocol import canonical, digest, parse
 from app.webhooks.routes import authenticated_body
 
 engine = create_engine(
-    os.environ.get("RECEIVER_DATABASE_URL", os.environ["DATABASE_URL"]), pool_pre_ping=True
+    os.environ.get("RECEIVER_DATABASE_URL", os.environ["DATABASE_URL"]),
+    pool_pre_ping=True,
 )
 app = FastAPI(title="Synthetic partner receipt contract")
 
