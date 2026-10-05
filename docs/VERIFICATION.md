@@ -13,6 +13,12 @@ Local check 2026-10-05; upstream `1762adac607a1b29cfc4da129557780beea71616`.
 - Browser automation passed: actual localhost login, duplicate input, lost-response retry, recovery, dead-delivery operator replay, 390px viewport without page overflow, logout. No browser page errors. Screenshots and original WebM are in `docs/images/`. Partner version/apply_count progressed 1/1 → 2/2 → 3/3, not once per HTTP attempt.
 - Ruff lint/format and module mypy passed. Migration downgrade/upgrade and post-change upstream Items/CRUD regression passed (21 tests).
 
-Published CI and Compose results will be recorded after execution. Until recorded, those are pending.
+- A pending `restart-proof` delivery survived an actual restart of the isolated PostgreSQL server. Dispatch after restart reached `delivered`; the partner recorded `apply_count=1`. This was an ordinary database restart, not a disk-loss, backup-restore or high-availability test.
+
+Implementation checked locally: `61540587fd9deaa4ae135e01284cce4f8194e93c`.
+
+[GitHub Actions run for that revision](https://github.com/Hadezu/fastapi-webhook-reliability/actions/runs/37368604732) was still **queued** at 2026-10-05 20:20 UTC. No hosted CI success is claimed. The workflow includes a real Docker Compose build/startup/delivery check, but Docker was unavailable on this Windows host: **Compose execution remains unverified until that job completes successfully**. Consult the linked run for its subsequent provider status.
+
+Local browser recording: `docs/images/recovery-demo.webm`, SHA-256 `CB90E18DE2B1EC75EAA7EA0E621A0308FAF92CC6956D3B338B6CB204354385E5`.
 
 Not claimed: full upstream email/browser suite, third-party vendor acceptance, production deployment, security audit, capacity/SLA, high availability or disaster recovery. No real funds, stock, client records or live emails involved.
