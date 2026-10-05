@@ -6,3 +6,12 @@ backend/app/frontend/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+.env.proof
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+proof-*.xml
+proof-results/
+*.egg-info/

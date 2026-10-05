@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import sentry_sdk
@@ -33,4 +34,11 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+if os.environ.get("WEBHOOK_ENABLED") == "1":
+    from fastapi.responses import FileResponse
+
+    @app.get("/proof", include_in_schema=False, tags=["catalog-sync"])
+    def proof_console() -> FileResponse:
+        return FileResponse(Path(__file__).parent / "webhooks" / "console.html")
+
 app.frontend("/", directory=FRONTEND_DIR)

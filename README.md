@@ -1,88 +1,90 @@
-# Full Stack FastAPI Template
+# Catalog webhook reliability — a FastAPI extension
 
-[![Test Docker Compose](../../actions/workflows/test-docker-compose.yml/badge.svg)](../../actions/workflows/test-docker-compose.yml)
-[![Test Backend](../../actions/workflows/test-backend.yml/badge.svg)](../../actions/workflows/test-backend.yml)
+[![Verification](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/webhook-proof.yml/badge.svg)](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/webhook-proof.yml)
 
-## Technology Stack and Features
+**The partner accepted a change, but its HTTP response was lost. What happens on retry?**
 
-- ⚡ [**FastAPI**](https://fastapi.tiangolo.com) for the Python backend API.
-  - 🧰 [SQLModel](https://sqlmodel.tiangolo.com) for the Python SQL database interactions (ORM).
-  - 🔍 [Pydantic](https://docs.pydantic.dev), used by FastAPI, for the data validation and settings management.
-  - 💾 [PostgreSQL](https://www.postgresql.org) as the SQL database.
-- 🚀 [React](https://react.dev) for the frontend.
-  - 🧩 Built into the backend application and served by FastAPI on the same domain as the API.
-  - 💃 Using TypeScript, hooks, [Vite](https://vitejs.dev), and other parts of a modern frontend stack.
-  - 🎨 [Tailwind CSS](https://tailwindcss.com) and [shadcn/ui](https://ui.shadcn.com) for the frontend components.
-  - 🤖 An automatically generated frontend client.
-  - 🧪 [Playwright](https://playwright.dev) for end-to-end testing.
-  - 🦇 Dark mode support.
-- ☁️ [FastAPI Cloud](https://fastapicloud.com) for deployment.
-- 🐋 [Docker Compose](https://www.docker.com) for local services and self-hosted deployment.
-  - 📞 [Traefik](https://traefik.io) as a reverse proxy with automatic HTTPS.
-- 🔒 Secure password hashing by default.
-- 🔑 JWT (JSON Web Token) authentication.
-- 📫 Email-based password recovery.
-- ✉️ [React Email](https://react.email) for email templates.
-- 📬 [Mailpit](https://mailpit.axllent.org) for local email testing during development.
-- ✅ Tests with [Pytest](https://pytest.org).
-- 🏭 CI (continuous integration) and CD (continuous deployment) based on GitHub Actions.
+This independent case adds signed catalog events, a PostgreSQL inbox/outbox and an operator recovery console to the **[Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template)**. It changes the existing application's actual `Item` records, then delivers a versioned projection to a synthetic partner over HTTP.
 
-### Dashboard Login
+By **Ivan Matiushkin with Codex**. Upstream application by Sebastián Ramírez and contributors, MIT. Independent/test work, not paid client history, an upstream-endorsed patch, a Shopify integration or a production reliability claim.
 
-![Dashboard login screenshot](img/login.png)
+## Inspect
 
-### Dashboard - Admin
+- [Case study](CASE-STUDY.md) · [Architecture and guarantees](docs/ARCHITECTURE.md)
+- [Verification](docs/VERIFICATION.md) · [Demo and recovery runbook](docs/DEMO.md)
+- [Our changes against upstream](https://github.com/Hadezu/fastapi-webhook-reliability/compare/1762adac607a1b29cfc4da129557780beea71616...main)
 
-![Admin dashboard screenshot](img/dashboard.png)
+| Situation | Observable result |
+| --- | --- |
+| Concurrent identical events | One inbox, one Item effect, one outbox |
+| Same event ID, different content | Conflict; no partial change |
+| Older entity version arrives late | Recorded as stale; newer Item preserved |
+| Invalid signature/timestamp | Rejected before application writes |
+| Process dies before commit | Item, inbox and outbox roll back together |
+| Partner commits, response lost | Retry retains key; partner applies once |
+| Worker dies after partner commit | Lease reclaimed; receipt resolves retry |
+| Old worker finishes after replacement | Token fences its database completion |
+| Retry budget exhausted | Dead delivery; reasoned operator replay with same key |
 
-### Dashboard - Items
+## Run locally
 
-![Items dashboard screenshot](img/dashboard-items.png)
+Requires Docker Compose v2 and Python 3 for configuration/sender scripts. No cloud account, paid API, production credentials or SMTP service.
 
-### Dashboard - Dark Mode
+```sh
+python proof/configure.py
+docker compose --env-file .env.proof -f compose.proof.yml up -d --build
+python proof/send.py sample-1
+python proof/send.py sample-1
+```
 
-![Dark mode dashboard screenshot](img/dashboard-dark.png)
+Open **http://127.0.0.1:8090/proof**. Use `FIRST_SUPERUSER` and `FIRST_SUPERUSER_PASSWORD` from generated **private** `.env.proof`. Existing application: `/`, API docs: `/docs`. The upstream Items view shows imported records. Both sends correspond to one delivery.
 
-### React Email Templates
+First startup builds React and migrates PostgreSQL; wait for `/api/v1/utils/health-check/` before sending. Only the API port is published, on loopback. Worker/receiver stay internal. Ordinary restarts preserve the database volume. `docker compose --env-file .env.proof -f compose.proof.yml down` stops the demo; adding `-v` deliberately removes its data.
 
-![Email templates screenshot](img/react-email.png)
+## Validate without Docker
 
-### Mailpit - Local Email Testing
+Python **3.14**, uv **0.12.23**, Bun **1.3.12**, disposable PostgreSQL 18 database named `webhook_proof`:
 
-![Mailpit screenshot](img/mailpit.png)
+```sh
+uv sync --locked --package app --group dev
+bun install --frozen-lockfile
+bun run --filter frontend build
+```
 
-### Interactive API Documentation
+Generate `.env.proof`, load its variables into your process environment, and set `DATABASE_URL` to the disposable PostgreSQL database. Tests require `PROOF_TEST_ALLOW_RESET=1` and truncate demonstration tables. **Never target useful data.**
 
-![API docs](img/docs.png)
+```sh
+cd backend
+uv run alembic upgrade head
+uv run pytest tests/api/routes/test_items.py tests/crud -q
+uv run pytest ../proof_tests -q
+```
 
-## How to Use It
+The extension tests use real PostgreSQL and a separate HTTP receiver process. Isolated HTTP-classification tests use a declared transport double. CI also checks pristine upstream tests, migration roundtrip, frontend build and actual Compose delivery.
 
-Click the **Use this template** button at the top of this page to create a new repository.
+## Review map
 
-## Backend Development
+- `backend/app/webhooks/protocol.py`: strict payload and HMAC protocol.
+- `service.py`: transaction spanning inbox, upstream Item, mapping and outbox.
+- `worker.py`: leases, HTTP delivery, retries, fencing and audit.
+- `routes.py`: ingress, operator status, controlled replay.
+- `console.html`: operator UI; access token held only in memory.
+- `backend/proof_receiver.py`: explicitly synthetic partner and fault controls.
+- `proof_tests/`: concurrency, separate-process crashes and recovery.
 
-Backend docs: [backend/README.md](./backend/README.md).
+## Boundaries
 
-## Frontend Development
+One configured source/owner; absolute versioned snapshots, not stock deltas or payments. The partner must implement the documented durable receipt contract. A generic vendor API does not inherit these guarantees. Demo processes share a PostgreSQL instance/credential for convenience; this is not tenant isolation. No SLA, load benchmark, security certification or client deployment is claimed.
 
-Frontend docs: [frontend/README.md](./frontend/README.md).
+A suitable paid slice is one webhook endpoint, duplicate-processing fix, outbox recovery path or integration test pack, after inspecting the actual API contract.
 
-## Deployment
+Safe line: **“I extended an existing FastAPI application with a PostgreSQL-backed webhook flow and tested concurrent duplicates, lost responses and worker crash recovery against a synthetic HTTP partner.”**
 
-FastAPI Cloud deployment: [deployment.md](./deployment.md).
+[Portfolio](https://work.matiushkin.com/en) · [GitHub](https://github.com/Hadezu) · ivan@matiushkin.com
 
-Self-hosted deployment with Docker Compose: [deployment-docker-compose.md](./deployment-docker-compose.md).
+Independent contractor · Poland / remote collaboration<br>
+Integrations, automation and internal systems for businesses
 
-## Development
+## Attribution
 
-General development docs: [development.md](./development.md).
-
-This includes the local FastAPI and Vite workflow, Docker Compose services, `.env` configuration, and more.
-
-## Release Notes
-
-Check the file [release-notes.md](./release-notes.md).
-
-## License
-
-The Full Stack FastAPI Template is licensed under the terms of the MIT license.
+Upstream baseline `1762adac607a1b29cfc4da129557780beea71616`; [original README](docs/UPSTREAM-README.md). Original MIT license retained. New extension: MIT, Copyright 2026 Ivan Matiushkin. Upstream deployment workflows are inert reference text in `docs/upstream-workflows/`; this proof does not deploy. Other upstream security/dependency configuration is preserved.

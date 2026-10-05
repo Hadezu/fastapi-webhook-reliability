@@ -1,0 +1,108 @@
+name: Webhook reliability proof
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: webhook_proof
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d webhook_proof"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:disposable-ci-only@127.0.0.1:5432/webhook_proof
+      PROJECT_NAME: Webhook Proof CI
+      SECRET_KEY: isolated-ci-jwt-key-not-for-deployment-0001
+      FIRST_SUPERUSER: operator@example.com
+      FIRST_SUPERUSER_PASSWORD: isolated-ci-password-0001
+      WEBHOOK_ENABLED: '1'
+      WEBHOOK_OWNER_ID: 11111111-1111-4111-8111-111111111111
+      WEBHOOK_INBOUND_SECRET: isolated-ci-inbound-key-not-for-deployment-0001
+      WEBHOOK_OUTBOUND_SECRET: isolated-ci-outbound-key-not-for-deployment-0001
+      PROOF_TEST_ALLOW_RESET: '1'
+      VITE_API_URL: ''
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.14'
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7
+        with:
+          version: '0.12.23'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: '1.3.12'
+      - run: uv sync --locked --package app --group dev
+      - name: Build upstream frontend
+        run: bun install --frozen-lockfile && bun run --filter frontend build
+      - name: Verify pristine upstream baseline (scoped Items + CRUD)
+        env:
+          WEBHOOK_ENABLED: '0'
+        run: |
+          mkdir -p /tmp/webhook-upstream
+          git archive 1762adac607a1b29cfc4da129557780beea71616 backend | tar -x -C /tmp/webhook-upstream
+          mkdir -p /tmp/webhook-upstream/backend/app/frontend
+          export PYTHONPATH=/tmp/webhook-upstream/backend
+          cd /tmp/webhook-upstream/backend
+          "$GITHUB_WORKSPACE/.venv/bin/alembic" upgrade head
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pytest tests/api/routes/test_items.py tests/crud -q --junitxml="$GITHUB_WORKSPACE/proof-baseline.xml"
+      - name: Migrate, roll back additive schema, migrate again
+        working-directory: backend
+        run: |
+          uv run alembic upgrade head
+          uv run alembic downgrade fe56fa70289e
+          uv run alembic upgrade head
+      - name: Existing Item and CRUD regression
+        working-directory: backend
+        run: uv run pytest tests/api/routes/test_items.py tests/crud -q --junitxml=../proof-upstream.xml
+      - name: Real PostgreSQL + HTTP + hard-crash tests
+        working-directory: backend
+        run: uv run pytest ../proof_tests -q --tb=short --junitxml=../proof-tests.xml
+      - name: Extension lint, format and types
+        run: |
+          uv run --package app ruff check backend/app/webhooks backend/proof_receiver.py backend/proof_seed.py proof_tests proof
+          uv run --package app ruff format --check backend/app/webhooks backend/proof_receiver.py backend/proof_seed.py proof_tests proof
+          uv run --package app mypy --follow-imports=silent --ignore-missing-imports backend/app/webhooks
+      - name: Compose build and startup smoke (no deployment)
+        run: |
+          python proof/configure.py
+          docker compose --env-file .env.proof -f compose.proof.yml up -d --build
+          for i in $(seq 1 90); do
+            if curl --fail --silent http://127.0.0.1:8090/api/v1/utils/health-check/; then break; fi
+            sleep 2
+          done
+          python proof/send.py ci-smoke
+          python proof/send.py ci-smoke
+          .venv/bin/python proof/compose_smoke.py
+      - name: Clean isolated Compose services
+        if: always()
+        run: |
+          if test -f .env.proof; then
+            docker compose --env-file .env.proof -f compose.proof.yml logs --no-color > proof-compose.log
+            docker compose --env-file .env.proof -f compose.proof.yml down -v
+          fi
+      - name: Save evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: webhook-proof-evidence
+          path: |
+            proof-*.xml
+            proof-compose.log
+          retention-days: 14

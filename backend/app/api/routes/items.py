@@ -1,13 +1,22 @@
+import os
 import uuid
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from sqlalchemy import text
 from sqlmodel import col, func, select
 
 from app.api.deps import CurrentUser, SessionDep
 from app.models import Item, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate, Message
 
 router = APIRouter(prefix="/items", tags=["items"])
+
+
+def require_unmanaged(session: SessionDep, item_id: uuid.UUID) -> None:
+    if os.environ.get("WEBHOOK_ENABLED") == "1" and session.execute(
+        text("SELECT 1 FROM webhook_entity WHERE item_id=:id"), {"id": item_id}
+    ).first():
+        raise HTTPException(409, "Catalog-managed item; update through the signed source")
 
 
 @router.get("/", response_model=ItemsPublic)
@@ -89,6 +98,7 @@ def update_item(
     if not current_user.is_superuser and (item.owner_id != current_user.id):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     update_dict = item_in.model_dump(exclude_unset=True)
+    require_unmanaged(session, id)
     item.sqlmodel_update(update_dict)
     session.add(item)
     session.commit()
@@ -108,6 +118,7 @@ def delete_item(
         raise HTTPException(status_code=404, detail="Item not found")
     if not current_user.is_superuser and (item.owner_id != current_user.id):
         raise HTTPException(status_code=403, detail="Not enough permissions")
+    require_unmanaged(session, id)
     session.delete(item)
     session.commit()
     return Message(message="Item deleted successfully")
