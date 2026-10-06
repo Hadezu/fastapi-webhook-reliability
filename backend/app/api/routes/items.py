@@ -13,10 +13,19 @@ router = APIRouter(prefix="/items", tags=["items"])
 
 
 def require_unmanaged(session: SessionDep, item_id: uuid.UUID) -> None:
-    if os.environ.get("WEBHOOK_ENABLED") == "1" and session.execute(
-        text("SELECT 1 FROM webhook_entity WHERE item_id=:id"), {"id": item_id}
-    ).first():
-        raise HTTPException(409, "Catalog-managed item; update through the signed source")
+    if os.environ.get("WEBHOOK_ENABLED") != "1":
+        return
+    managed = (
+        session.connection()
+        .execute(
+            text("SELECT 1 FROM webhook_entity WHERE item_id=:id"), {"id": item_id}
+        )
+        .first()
+    )
+    if managed:
+        raise HTTPException(
+            409, "Catalog-managed item; update through the signed source"
+        )
 
 
 @router.get("/", response_model=ItemsPublic)
