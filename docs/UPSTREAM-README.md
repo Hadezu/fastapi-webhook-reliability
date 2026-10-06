@@ -1,7 +1,8 @@
 # Full Stack FastAPI Template
 
-[![Test Docker Compose](../../actions/workflows/test-docker-compose.yml/badge.svg)](../../actions/workflows/test-docker-compose.yml)
-[![Test Backend](../../actions/workflows/test-backend.yml/badge.svg)](../../actions/workflows/test-backend.yml)
+> Upstream reference, relocated from the template's root README at [revision 1762adac](https://github.com/fastapi/full-stack-fastapi-template/blob/1762adac607a1b29cfc4da129557780beea71616/README.md). Template features below belong to the upstream contributors. Relative links have been adjusted for this file's location; this is not the setup or verification record for Ivan's extension. Start with [our README](../README.md) and [executed verification](VERIFICATION.md).
+
+[Upstream Docker Compose workflow](https://github.com/fastapi/full-stack-fastapi-template/actions/workflows/test-docker-compose.yml) · [Upstream backend workflow](https://github.com/fastapi/full-stack-fastapi-template/actions/workflows/test-backend.yml)
 
 ## Technology Stack and Features
 
@@ -29,31 +30,31 @@
 
 ### Dashboard Login
 
-![Dashboard login screenshot](img/login.png)
+![Dashboard login screenshot](../img/login.png)
 
 ### Dashboard - Admin
 
-![Admin dashboard screenshot](img/dashboard.png)
+![Admin dashboard screenshot](../img/dashboard.png)
 
 ### Dashboard - Items
 
-![Items dashboard screenshot](img/dashboard-items.png)
+![Items dashboard screenshot](../img/dashboard-items.png)
 
 ### Dashboard - Dark Mode
 
-![Dark mode dashboard screenshot](img/dashboard-dark.png)
+![Dark mode dashboard screenshot](../img/dashboard-dark.png)
 
 ### React Email Templates
 
-![Email templates screenshot](img/react-email.png)
+![Email templates screenshot](../img/react-email.png)
 
 ### Mailpit - Local Email Testing
 
-![Mailpit screenshot](img/mailpit.png)
+![Mailpit screenshot](../img/mailpit.png)
 
 ### Interactive API Documentation
 
-![API docs](img/docs.png)
+![API docs](../img/docs.png)
 
 ## How to Use It
 
@@ -61,27 +62,27 @@ Click the **Use this template** button at the top of this page to create a new r
 
 ## Backend Development
 
-Backend docs: [backend/README.md](./backend/README.md).
+Backend docs: [backend/README.md](../backend/README.md).
 
 ## Frontend Development
 
-Frontend docs: [frontend/README.md](./frontend/README.md).
+Frontend docs: [frontend/README.md](../frontend/README.md).
 
 ## Deployment
 
-FastAPI Cloud deployment: [deployment.md](./deployment.md).
+FastAPI Cloud deployment: [deployment.md](../deployment.md).
 
-Self-hosted deployment with Docker Compose: [deployment-docker-compose.md](./deployment-docker-compose.md).
+Self-hosted deployment with Docker Compose: [deployment-docker-compose.md](../deployment-docker-compose.md).
 
 ## Development
 
-General development docs: [development.md](./development.md).
+General development docs: [development.md](../development.md).
 
 This includes the local FastAPI and Vite workflow, Docker Compose services, `.env` configuration, and more.
 
 ## Release Notes
 
-Check the file [release-notes.md](./release-notes.md).
+Check the file [release-notes.md](../release-notes.md).
 
 ## License
 
