@@ -1,5 +1,13 @@
 # Catalog webhook reliability — a FastAPI extension
 
+<!-- portfolio-navigation:start -->
+[← Project index](https://github.com/Hadezu#selected-implementations) · [API integration](https://work.matiushkin.com/en/services/api-integration) · [Describe a similar task](https://work.matiushkin.com/en/contact?example=services%2Fapi-integration)
+
+**Review format:** Local application with real PostgreSQL and HTTP failure tests; synthetic partner. No public hosted console.
+
+[Related interactive example](https://work.matiushkin.com/en/data-bridge) — a separate portfolio demonstration of the same problem.
+<!-- portfolio-navigation:end -->
+
 [![Verification](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/webhook-proof.yml/badge.svg)](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/webhook-proof.yml)
 [![Backend tests and coverage](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/test-backend.yml/badge.svg?branch=main)](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/test-backend.yml)
 
