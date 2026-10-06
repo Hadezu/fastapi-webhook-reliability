@@ -6,7 +6,9 @@
 
 Raw SQL uses `session.connection().execute()` in the existing ORM transaction. Explicit flush, commit/rollback, advisory locks and parameter binding are retained. This removes SQLModel's deprecated `Session.execute` calls without suppressing type diagnostics. The duplicate/concurrency/rollback and managed-item tests exercise the affected paths.
 
-Local checks passed: **58 upstream backend tests + 41 webhook tests**, combined coverage **91%**, `ty` and `mypy`. Hosted results must be checked on the corresponding revision; a local pass is not a hosted pass. The independent Compose/browser workflow remains required alongside these checks.
+Local checks passed: **58 upstream backend tests + 41 webhook tests**, combined coverage **91%**, `ty` and `mypy`. On revision `e3a6e53`, the [hosted backend gate](https://github.com/Hadezu/fastapi-webhook-reliability/actions/runs/37424796606) passed all 99 tests with **92% coverage** (847 statements, 69 missed), and [the complete pre-commit workflow](https://github.com/Hadezu/fastapi-webhook-reliability/actions/runs/37424796685) passed, including type checks and API client generation. The Linux job builds the actual frontend before loading the non-development application and pins its disposable Mailpit service to v1.31.4.
+
+[PR #5](https://github.com/Hadezu/fastapi-webhook-reliability/pull/5) records the final revision's complete check results, including the independent Compose recovery scenario and the inherited browser suite. A coverage percentage measures executed statements, not production reliability or test completeness.
 
 ## Persistent Compose browser gate — 2026-10-06
 
