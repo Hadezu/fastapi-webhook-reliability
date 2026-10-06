@@ -9,6 +9,9 @@ permissions: {}
 
 jobs:
   smokeshow:
+    # Upstream's external coverage publisher is not part of this independent proof.
+    # Failed/skipped backend runs have no coverage-html artifact to publish.
+    if: github.repository == 'fastapi/full-stack-fastapi-template' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
