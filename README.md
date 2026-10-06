@@ -9,20 +9,7 @@ This independent case adds signed catalog events, a PostgreSQL inbox/outbox and 
 
 By **Ivan Matiushkin with Codex**. Upstream application by Sebastián Ramírez and contributors, MIT. Independent/test work, not paid client history, an upstream-endorsed patch, a Shopify integration or a production reliability claim.
 
-## Watch the demonstration
-
-Recorded recovery workflow against a synthetic partner. This is a local demonstration, not a live production connection.
-
-https://github.com/user-attachments/assets/c1266418-e54a-4346-b3d4-af0de5377d36
-
-<details>
-<summary>View a still frame</summary>
-
 ![Actual operator console after verified recovery](docs/images/delivery-console.png)
-
-</details>
-
-[Download original recording](docs/images/recovery-demo.webm)
 
 - [Case study](CASE-STUDY.md) · [Architecture and guarantees](docs/ARCHITECTURE.md)
 - [Verification](docs/VERIFICATION.md) · [Demo and recovery runbook](docs/DEMO.md)
@@ -102,3 +89,12 @@ Integrations, automation and internal systems for businesses
 ## Attribution
 
 Upstream baseline `1762adac607a1b29cfc4da129557780beea71616`; [original README](docs/UPSTREAM-README.md). Original MIT license retained. New extension: MIT, Copyright 2026 Ivan Matiushkin. Upstream deployment workflows are inert reference text in `docs/upstream-workflows/`; this proof does not deploy. Other upstream security/dependency configuration is preserved.
+
+<details>
+<summary>Technical verification recording</summary>
+
+Original test recording retained as supporting evidence. For the scenario, results and limitations, see the verification documentation above.
+
+[Download the original recording](docs/images/recovery-demo.webm)
+
+</details>
