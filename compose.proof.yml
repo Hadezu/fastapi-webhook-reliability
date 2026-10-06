@@ -38,10 +38,15 @@ services:
     command: [python, -m, app.webhooks.worker]
     depends_on:
       migrate: {condition: service_completed_successfully}
-      receiver: {condition: service_started}
+      receiver: {condition: service_healthy}
   receiver:
     <<: *app
     command: [uvicorn, "proof_receiver:app", --host, "0.0.0.0", --port, "8091"]
+    healthcheck:
+      test: [CMD, python, -c, "from urllib.request import urlopen; urlopen('http://127.0.0.1:8091/health', timeout=2).close()"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
     depends_on:
       migrate: {condition: service_completed_successfully}
 volumes:
