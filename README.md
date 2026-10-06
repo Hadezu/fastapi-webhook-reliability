@@ -1,6 +1,7 @@
 # Catalog webhook reliability — a FastAPI extension
 
 [![Verification](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/webhook-proof.yml/badge.svg)](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/webhook-proof.yml)
+[![Backend tests and coverage](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/test-backend.yml/badge.svg?branch=main)](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/test-backend.yml)
 
 **The partner accepted a change, but its HTTP response was lost. What happens on retry?**
 
@@ -64,7 +65,7 @@ uv run pytest tests/api/routes/test_items.py tests/crud -q
 uv run pytest ../proof_tests -q
 ```
 
-The extension tests use real PostgreSQL and a separate HTTP receiver process. Isolated HTTP-classification tests use a declared transport double. CI also checks pristine upstream tests, migration roundtrip, frontend build and actual Compose delivery.
+The extension tests use real PostgreSQL and a separate HTTP receiver process. Isolated HTTP-classification tests use a declared transport double. CI also checks pristine upstream tests, migration roundtrip, frontend build and actual Compose delivery. A separate backend gate runs the full upstream backend suite plus extension tests and requires at least 90% coverage across `app`, with HTML/XML evidence. See [verification scope and results](docs/VERIFICATION.md).
 
 ## Review map
 

@@ -1,5 +1,15 @@
 # Verification
 
+## Complete backend quality gate — 2026-10-06
+
+`Test Backend` now measures the full upstream backend suite and the webhook fault suite against the same `app` coverage scope, in separate Python processes. The first process disables the extension and enables the template's development-only routes; the second enables the extension without development routes. Both use a disposable `*_proof` PostgreSQL database. Coverage is appended, not averaged; no application modules are excluded and the required threshold remains **90%**. The workflow runs for pull requests and pushes to this repository's `main` branch, and saves the combined HTML/XML report.
+
+Raw SQL uses `session.connection().execute()` in the existing ORM transaction. Explicit flush, commit/rollback, advisory locks and parameter binding are retained. This removes SQLModel's deprecated `Session.execute` calls without suppressing type diagnostics. The duplicate/concurrency/rollback and managed-item tests exercise the affected paths.
+
+Local checks passed: **58 upstream backend tests + 41 webhook tests**, combined coverage **91%**, `ty` and `mypy`. On revision `e3a6e53`, the [hosted backend gate](https://github.com/Hadezu/fastapi-webhook-reliability/actions/runs/37424796606) passed all 99 tests with **92% coverage** (847 statements, 69 missed), and [the complete pre-commit workflow](https://github.com/Hadezu/fastapi-webhook-reliability/actions/runs/37424796685) passed, including type checks and API client generation. The Linux job builds the actual frontend before loading the non-development application and pins its disposable Mailpit service to v1.31.4.
+
+[PR #5](https://github.com/Hadezu/fastapi-webhook-reliability/pull/5) records the final revision's complete check results, including the independent Compose recovery scenario and the inherited browser suite. A coverage percentage measures executed statements, not production reliability or test completeness.
+
 ## Persistent Compose browser gate — 2026-10-06
 
 Revision `d07fb03` passed [the hosted proof workflow](https://github.com/Hadezu/fastapi-webhook-reliability/actions/runs/37419221258), including the new complete Chromium operator scenario against actual Docker Compose services. It checks login, duplicate input, lost response, idempotent recovery, rejected delivery, reasoned manual replay, mobile layout and logout. Controlled Python steps additionally assert partner application counts and exactly one replay audit record. The background worker is paused during controlled steps and restarted for the independent receipt smoke.
@@ -15,7 +25,7 @@ docker compose --env-file .env.proof -f compose.proof.yml start worker
 
 The script uses deterministic `demo-*` inputs; it is an acceptance test for a fresh fixture, not a reset command or a production diagnostic. Screenshots, original video and `result.json` are uploaded under `proof-results/browser/` in the proof evidence artifact (14-day retention).
 
-The inherited external Smokeshow publisher is now upstream-only and requires a successful backend run, preventing missing-artifact failures in this independent proof. Other inherited template checks remain separate: the original backend coverage job runs only template tests but counts extension files (63%, below its 90% threshold); `ty` flags existing SQLModel raw-SQL `Session.execute` calls as deprecated. Those checks are not represented as green by the passing proof workflow, and their thresholds were not lowered.
+The inherited external Smokeshow publisher is upstream-only and requires a successful backend run, preventing missing-artifact failures in this independent proof. At this earlier checkpoint, the inherited coverage job ran only template tests while counting extension files (63% against 90%), and `ty` flagged SQLModel raw-SQL `Session.execute` calls. The complete backend gate above addresses those causes; the historical red runs remain part of the record.
 
 ## Historical baseline
 
@@ -42,4 +52,4 @@ Docker was unavailable on the local Windows host; its execution evidence comes f
 
 Local browser recording: `docs/images/recovery-demo.webm`, SHA-256 `CB90E18DE2B1EC75EAA7EA0E621A0308FAF92CC6956D3B338B6CB204354385E5`.
 
-Not claimed: full upstream email/browser suite, third-party vendor acceptance, production deployment, security audit, capacity/SLA, high availability or disaster recovery. No real funds, stock, client records or live emails involved.
+At that historical checkpoint, the full upstream email/browser suite was not verified. No third-party vendor acceptance, production deployment, security audit, capacity/SLA, high availability or disaster recovery is claimed. No real funds, stock, client records or live emails involved.

@@ -17,16 +17,18 @@ def accept(engine: Engine, owner_id: uuid.UUID, event: CatalogEvent) -> dict[str
     full_hash = digest(canonical(event.model_dump()))
     content_hash = digest(canonical(event.model_dump(exclude={"event_id"})))
     with Session(engine) as session, session.begin():
-        session.execute(text("SET LOCAL lock_timeout='3s'"))
-        session.execute(text("SET LOCAL statement_timeout='5s'"))
+        # Raw SQL and ORM writes share this session's transaction/connection.
+        conn = session.connection()
+        conn.execute(text("SET LOCAL lock_timeout='3s'"))
+        conn.execute(text("SET LOCAL statement_timeout='5s'"))
         # Serialize event identity first, then entity identity. Hash collisions only serialize.
         for key in ("event:" + event.event_id, "entity:" + event.external_id):
-            session.execute(
+            conn.execute(
                 text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
                 {"key": key},
             )
         previous = (
-            session.execute(
+            conn.execute(
                 text("SELECT * FROM webhook_inbox WHERE event_id=:id"),
                 {"id": event.event_id},
             )
@@ -45,7 +47,7 @@ def accept(engine: Engine, owner_id: uuid.UUID, event: CatalogEvent) -> dict[str
         if not owner or not owner.is_active:
             raise HTTPException(503, "Integration owner unavailable")
         current = (
-            session.execute(
+            conn.execute(
                 text("SELECT * FROM webhook_entity WHERE external_id=:id FOR UPDATE"),
                 {"id": event.external_id},
             )
@@ -72,7 +74,7 @@ def accept(engine: Engine, owner_id: uuid.UUID, event: CatalogEvent) -> dict[str
             item.title, item.description = event.title, event.description
             session.add(item)
             session.flush()
-            session.execute(
+            conn.execute(
                 text("""
                 INSERT INTO webhook_entity(external_id,item_id,version,content_hash)
                 VALUES (:id,:item,:version,:hash) ON CONFLICT (external_id) DO UPDATE
@@ -85,7 +87,7 @@ def accept(engine: Engine, owner_id: uuid.UUID, event: CatalogEvent) -> dict[str
                     "hash": content_hash,
                 },
             )
-        session.execute(
+        conn.execute(
             text("""
             INSERT INTO webhook_inbox(event_id,external_id,version,body_hash,outcome)
             VALUES (:event,:entity,:version,:hash,:outcome)
@@ -99,7 +101,7 @@ def accept(engine: Engine, owner_id: uuid.UUID, event: CatalogEvent) -> dict[str
             },
         )
         if outcome == "applied":
-            session.execute(
+            conn.execute(
                 text("""
                 INSERT INTO webhook_outbox(id,event_id,payload) VALUES (:id,:event,CAST(:payload AS jsonb))
             """),
