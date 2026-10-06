@@ -9,11 +9,20 @@ This independent case adds signed catalog events, a PostgreSQL inbox/outbox and 
 
 By **Ivan Matiushkin with Codex**. Upstream application by Sebastián Ramírez and contributors, MIT. Independent/test work, not paid client history, an upstream-endorsed patch, a Shopify integration or a production reliability claim.
 
-## Inspect
+## Watch the demonstration
+
+Recorded recovery workflow against a synthetic partner. This is a local demonstration, not a live production connection.
+
+https://github.com/user-attachments/assets/c1266418-e54a-4346-b3d4-af0de5377d36
+
+<details>
+<summary>View a still frame</summary>
 
 ![Actual operator console after verified recovery](docs/images/delivery-console.png)
 
-[Watch the recorded local recovery demonstration](docs/images/recovery-demo.webm)
+</details>
+
+[Download original recording](docs/images/recovery-demo.webm)
 
 - [Case study](CASE-STUDY.md) · [Architecture and guarantees](docs/ARCHITECTURE.md)
 - [Verification](docs/VERIFICATION.md) · [Demo and recovery runbook](docs/DEMO.md)
