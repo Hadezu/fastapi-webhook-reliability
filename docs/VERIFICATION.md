@@ -1,5 +1,24 @@
 # Verification
 
+## Persistent Compose browser gate — 2026-10-06
+
+Revision `d07fb03` passed [the hosted proof workflow](https://github.com/Hadezu/fastapi-webhook-reliability/actions/runs/37419221258), including the new complete Chromium operator scenario against actual Docker Compose services. It checks login, duplicate input, lost response, idempotent recovery, rejected delivery, reasoned manual replay, mobile layout and logout. Controlled Python steps additionally assert partner application counts and exactly one replay audit record. The background worker is paused during controlled steps and restarted for the independent receipt smoke.
+
+On a **fresh disposable Compose database**, after setup and `bun install --frozen-lockfile`, run:
+
+```sh
+cd frontend && bun x playwright install chromium && cd ..
+docker compose --env-file .env.proof -f compose.proof.yml stop worker
+bun proof/browser-demo.mjs --compose
+docker compose --env-file .env.proof -f compose.proof.yml start worker
+```
+
+The script uses deterministic `demo-*` inputs; it is an acceptance test for a fresh fixture, not a reset command or a production diagnostic. Screenshots, original video and `result.json` are uploaded under `proof-results/browser/` in the proof evidence artifact (14-day retention).
+
+The inherited external Smokeshow publisher is now upstream-only and requires a successful backend run, preventing missing-artifact failures in this independent proof. Other inherited template checks remain separate: the original backend coverage job runs only template tests but counts extension files (63%, below its 90% threshold); `ty` flags existing SQLModel raw-SQL `Session.execute` calls as deprecated. Those checks are not represented as green by the passing proof workflow, and their thresholds were not lowered.
+
+## Historical baseline
+
 Local check 2026-10-05; upstream `1762adac607a1b29cfc4da129557780beea71616`.
 
 - Python 3.14.4, uv 0.12.23, unchanged upstream uv.lock.
