@@ -1,31 +1,76 @@
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
-import { mkdir, copyFile } from 'node:fs/promises';
+import { mkdir, copyFile, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const require=createRequire(process.env.PROOF_PLAYWRIGHT_PACKAGE || path.join(root,'package.json'));
-const {chromium}=require('playwright');
-const out=path.join(root,'docs','images');await mkdir(out,{recursive:true});
-const browser=await chromium.launch({headless:true});
-const context=await browser.newContext({viewport:{width:1440,height:960},recordVideo:{dir:path.join(root,'proof-results'),size:{width:1440,height:960}}});
-const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-function step(name){const r=spawnSync(process.env.PROOF_PYTHON||path.join(root,'.venv',process.platform==='win32'?'Scripts/python.exe':'bin/python'),[path.join(root,'proof','demo_step.py'),name],{cwd:path.join(root,'backend'),encoding:'utf8',env:process.env});if(r.status!==0)throw Error(r.stderr);console.log(name,r.stdout.trim())}
-await page.goto('http://127.0.0.1:8090/proof');
-await page.locator('input[name=username]').fill(process.env.FIRST_SUPERUSER);
-await page.locator('input[name=password]').fill(process.env.FIRST_SUPERUSER_PASSWORD);
-await page.getByRole('button',{name:'Sign in',exact:true}).click();
-await page.getByRole('button',{name:'Refresh evidence'}).waitFor();
-step('happy');await page.getByRole('button',{name:'Refresh evidence'}).click();await page.locator('#deliveries .delivered').waitFor();await page.waitForTimeout(1600);
-step('duplicate');await page.getByRole('button',{name:'Refresh evidence'}).click();await page.waitForTimeout(1400);if(await page.locator('#deliveries tr').count()!==1)throw Error('Duplicate input produced extra delivery');
-step('lost');await page.getByRole('button',{name:'Refresh evidence'}).click();await page.locator('#deliveries .retry').waitFor();await page.screenshot({path:path.join(out,'lost-response.png'),fullPage:true});await page.waitForTimeout(2500);
-step('recover');await page.getByRole('button',{name:'Refresh evidence'}).click();await page.waitForTimeout(1500);
-step('reject');await page.getByRole('button',{name:'Refresh evidence'}).click();await page.locator('#deliveries .dead').waitFor();await page.waitForTimeout(1800);
-page.once('dialog',async d=>d.accept('Inspected partner rejection and corrected test configuration'));
-await page.getByRole('button',{name:'Replay',exact:true}).click();await page.waitForTimeout(800);step('recover');await page.getByRole('button',{name:'Refresh evidence'}).click();await page.waitForTimeout(1000);
-if(await page.locator('#deliveries .delivered').count()!==3)throw Error('Expected three delivered versions');
-await page.screenshot({path:path.join(out,'delivery-console.png'),fullPage:true});
-await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('Mobile page overflows viewport');await page.screenshot({path:path.join(out,'mobile-console.png'),fullPage:true});
-await page.setViewportSize({width:1440,height:960});await page.getByRole('button',{name:'Sign out'}).click();await page.getByRole('button',{name:'Sign in',exact:true}).waitFor();
-await context.close();await copyFile(await page.video().path(),path.join(out,'recovery-demo.webm'));await browser.close();
-if(errors.length)throw Error(errors.join('\n'));console.log('Browser PASS: login, duplicate, timeout, recovery, audited replay, mobile, logout; no page errors');
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const require = createRequire(process.env.PROOF_PLAYWRIGHT_PACKAGE || path.join(root, 'frontend', 'package.json'));
+const { chromium } = require('playwright');
+const { expect } = require('@playwright/test');
+const compose = process.argv.includes('--compose');
+const out = path.join(root, 'proof-results', 'browser');
+await mkdir(out, { recursive: true });
+const credentials = compose
+  ? Object.fromEntries((await readFile(path.join(root, '.env.proof'), 'utf8')).trim().split(/\r?\n/).map(line => {
+    const split = line.indexOf('='); return [line.slice(0, split), line.slice(split + 1)];
+  }))
+  : process.env;
+
+function step(name) {
+  const executable = compose ? 'docker' : process.env.PROOF_PYTHON || path.join(root, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
+  const args = compose
+    ? ['compose', '--env-file', '.env.proof', '-f', 'compose.proof.yml', 'exec', '-T', '-e', 'PROOF_API_URL=http://api:8000', 'api', 'python', '/src/proof/demo_step.py', name]
+    : [path.join(root, 'proof', 'demo_step.py'), name];
+  const result = spawnSync(executable, args, { cwd: compose ? root : path.join(root, 'backend'), encoding: 'utf8', env: process.env, timeout: 30_000 });
+  if (result.status !== 0) throw new Error(`Controlled ${name} step failed: ${result.error?.message || result.stderr}`);
+  console.log(name, result.stdout.trim());
+}
+
+const browser = await chromium.launch({ headless: true });
+const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, recordVideo: { dir: out, size: { width: 1440, height: 960 } } });
+const page = await context.newPage();
+const errors = [];
+page.on('pageerror', error => errors.push(error.message));
+const refresh = () => page.getByRole('button', { name: 'Refresh evidence' }).click();
+try {
+  await page.goto('http://127.0.0.1:8090/proof');
+  await page.locator('input[name=username]').fill(credentials.FIRST_SUPERUSER);
+  await page.locator('input[name=password]').fill(credentials.FIRST_SUPERUSER_PASSWORD);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('button', { name: 'Refresh evidence' }).waitFor();
+  step('happy'); await refresh();
+  await expect(page.locator('#deliveries .delivered')).toHaveCount(1);
+  step('duplicate'); await refresh();
+  await expect(page.locator('#deliveries tr')).toHaveCount(1);
+  step('lost'); await refresh();
+  await expect(page.locator('#deliveries .retry')).toHaveCount(1);
+  await page.screenshot({ path: path.join(out, 'lost-response.png'), fullPage: true });
+  step('recover'); await refresh();
+  await expect(page.locator('#deliveries .delivered')).toHaveCount(2);
+  step('reject'); await refresh();
+  await expect(page.locator('#deliveries .dead')).toHaveCount(1);
+  page.once('dialog', dialog => dialog.accept('Inspected partner rejection and corrected test configuration'));
+  const replay = page.waitForResponse(response => response.url().endsWith('/replay') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Replay', exact: true }).click();
+  expect((await replay).status()).toBe(200);
+  step('recover'); await refresh();
+  await expect(page.locator('#deliveries .delivered')).toHaveCount(3);
+  await expect(page.locator('#deliveries .dead')).toHaveCount(0);
+  await page.screenshot({ path: path.join(out, 'delivery-console.png'), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: path.join(out, 'mobile-console.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.getByRole('button', { name: 'Sign in', exact: true }).waitFor();
+  expect(errors).toEqual([]);
+  await writeFile(path.join(out, 'result.json'), JSON.stringify({ outcome: 'PASS', environment: compose ? 'Docker Compose + PostgreSQL + real HTTP' : 'local PostgreSQL + real HTTP', checks: ['login', 'duplicate input', 'lost response', 'idempotent recovery', 'rejection', 'audited manual replay', 'mobile overflow', 'logout', 'no page errors'] }, null, 2));
+} catch (error) {
+  await page.screenshot({ path: path.join(out, 'failure.png'), fullPage: true }).catch(() => {});
+  throw error;
+} finally {
+  await context.close();
+  await copyFile(await page.video().path(), path.join(out, 'recovery-demo.webm'));
+  await browser.close();
+}
+console.log('Browser PASS: full delivery recovery scenario; evidence in proof-results/browser');

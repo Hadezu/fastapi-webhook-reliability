@@ -1,6 +1,8 @@
 """Controlled local recording steps; synthetic database only, no resets."""
 
+import os
 import sys
+import time
 
 import httpx
 from app.core.db import engine
@@ -36,13 +38,21 @@ with httpx.Client(timeout=0.3, trust_env=False) as client:
             }
         )
         response = client.post(
-            "http://127.0.0.1:8090/api/v1/catalog-sync/events",
+            os.environ.get("PROOF_API_URL", "http://127.0.0.1:8090")
+            + "/api/v1/catalog-sync/events",
             content=body,
             headers=headers(config().inbound_secret.get_secret_value(), body),
             timeout=10,
         )
         response.raise_for_status()
-    run_once(engine, config(), client)
+    # Honour the real retry deadline; do not rewrite state to make a demo pass.
+    deadline = time.monotonic() + 10
+    while not run_once(engine, config(), client):
+        if step != "recover":
+            break
+        if time.monotonic() >= deadline:
+            raise RuntimeError("No recoverable delivery became due")
+        time.sleep(0.1)
 with engine.connect() as conn:
     rows = (
         conn.execute(
@@ -52,3 +62,31 @@ with engine.connect() as conn:
         .all()
     )
 print([dict(row) for row in rows])
+expected = {"happy": (1, 1), "duplicate": (1, 1), "lost": (2, 2), "reject": (2, 2)}
+lamp = next(row for row in rows if row["external_id"] == "desk-lamp")
+if step in expected:
+    assert (lamp["version"], lamp["apply_count"]) == expected[step]
+if step == "recover":
+    assert lamp["version"] == lamp["apply_count"]
+    assert lamp["version"] in {2, 3}
+    with engine.connect() as conn:
+        assert (
+            conn.execute(
+                text(
+                    "SELECT count(*) FROM webhook_outbox WHERE event_id LIKE 'demo-%' AND state <> 'delivered'"
+                )
+            ).scalar_one()
+            == 0
+        )
+        if lamp["version"] == 3:
+            assert (
+                conn.execute(
+                    text(
+                        "SELECT count(*) FROM webhook_audit WHERE action='manual_replay' AND reason=:reason"
+                    ),
+                    {
+                        "reason": "Inspected partner rejection and corrected test configuration"
+                    },
+                ).scalar_one()
+                == 1
+            )

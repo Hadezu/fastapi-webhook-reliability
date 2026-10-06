@@ -51,6 +51,9 @@ jobs:
       - run: uv sync --locked --package app --group dev
       - name: Build upstream frontend
         run: bun install --frozen-lockfile && bun run --filter frontend build
+      - name: Install browser for the real Compose scenario
+        working-directory: frontend
+        run: bun x playwright install --with-deps chromium
       - name: Verify pristine upstream baseline (scoped Items + CRUD)
         env:
           WEBHOOK_ENABLED: '0'
@@ -87,6 +90,13 @@ jobs:
             if curl --fail --silent http://127.0.0.1:8090/api/v1/utils/health-check/; then break; fi
             sleep 2
           done
+      - name: Browser delivery, duplicate, timeout, recovery and audited replay
+        run: |
+          docker compose --env-file .env.proof -f compose.proof.yml stop worker
+          bun proof/browser-demo.mjs --compose
+          docker compose --env-file .env.proof -f compose.proof.yml start worker
+      - name: Background worker receipt smoke
+        run: |
           python proof/send.py ci-smoke
           python proof/send.py ci-smoke
           .venv/bin/python proof/compose_smoke.py
@@ -105,4 +115,5 @@ jobs:
           path: |
             proof-*.xml
             proof-compose.log
+            proof-results/browser/
           retention-days: 14
