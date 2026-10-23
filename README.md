@@ -1,9 +1,10 @@
-# Catalog webhook reliability — a FastAPI extension
+# FastAPI — recoverable catalog synchronization
+
+Connect signed catalog events to application records and partner delivery. PostgreSQL transactions, durable receipts and an operator console make duplicate events, interrupted workers and lost responses inspectable and recoverable.
 
 <!-- portfolio-navigation:start -->
 [← Project index](https://github.com/Hadezu#selected-implementations) · [API integration](https://work.matiushkin.com/en/services/api-integration) · [Describe a similar task](https://work.matiushkin.com/en/contact?example=services%2Fapi-integration)
 
-**Review format:** Local application with real PostgreSQL and HTTP failure tests; synthetic partner. No public hosted console.
 
 [Related interactive example](https://work.matiushkin.com/en/data-bridge) — a separate portfolio demonstration of the same problem.
 <!-- portfolio-navigation:end -->
@@ -11,11 +12,7 @@
 [![Verification](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/webhook-proof.yml/badge.svg)](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/webhook-proof.yml)
 [![Backend tests and coverage](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/test-backend.yml/badge.svg?branch=main)](https://github.com/Hadezu/fastapi-webhook-reliability/actions/workflows/test-backend.yml)
 
-**The partner accepted a change, but its HTTP response was lost. What happens on retry?**
-
-This independent case adds signed catalog events, a PostgreSQL inbox/outbox and an operator recovery console to the **[Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template)**. It changes the existing application's actual `Item` records, then delivers a versioned projection to a synthetic partner over HTTP.
-
-By **Ivan Matiushkin with Codex**. Upstream application by Sebastián Ramírez and contributors, MIT. Independent/test work, not paid client history, an upstream-endorsed patch, a Shopify integration or a production reliability claim.
+Built on the **[Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template)**. The extension updates its actual `Item` records and delivers versioned projections to a synthetic HTTP partner. The scenarios below show the observed recovery outcomes.
 
 ![Actual operator console after verified recovery](docs/images/delivery-console.png)
 
@@ -106,3 +103,13 @@ Original test recording retained as supporting evidence. For the scenario, resul
 [Download the original recording](docs/images/recovery-demo.webm)
 
 </details>
+
+
+**Upstream:** Full Stack FastAPI Template by Sebastián Ramírez and contributors, MIT.
+
+
+## Discuss a similar project
+
+I develop complete applications, integrations and focused improvements to existing software. Send the workflow you want to improve and the outcome you need; we can define the scope, delivery stages and acceptance checks together.
+
+**[Discuss your project](https://work.matiushkin.com/en/contact)** · [More implementations](https://github.com/Hadezu) · [Project context and verification scope](PRESENTATION-SCOPE.md)
